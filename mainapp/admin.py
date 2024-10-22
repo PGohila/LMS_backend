@@ -39,11 +39,11 @@ class CurrencyAdmin(admin.ModelAdmin):
     
 @admin.register(Customer)
 class CustomerAdmin(admin.ModelAdmin):
-    list_display = ['company_id', 'customer_id', 'firstname', 'lastname', 'email', 'phone_number', 'address', 'dateofbirth', 'identification_type', 'identification_number', 'expiry_date', 'is_active']
+    list_display = ['company_id', 'customer_id', 'firstname', 'lastname', 'email', 'phone_number', 'address', 'dateofbirth', 'expiry_date', 'is_active']
     
 @admin.register(CustomerDocuments)
 class CustomerdocumentsAdmin(admin.ModelAdmin):
-    list_display = ['company', 'documentid', 'document_type', 'uploaded_at', 'verified', 'verified_by', 'verified_at']
+    list_display = ['company', 'documentid', 'document_type', 'uploaded_at',]
     
 @admin.register(Creditscores)
 class CreditscoresAdmin(admin.ModelAdmin):
@@ -55,7 +55,7 @@ class CustomerfeedbackAdmin(admin.ModelAdmin):
     
 @admin.register(Loan)
 class LoanAdmin(admin.ModelAdmin):
-    list_display = ['company', 'loanapp_id','loan_id', 'borrower', 'loan_amount', 'interest_rate']
+    list_display = ['company', 'loanapp_id','loan_id', 'loan_amount', 'interest_rate']
     
 @admin.register(Notifications)
 class NotificationsAdmin(admin.ModelAdmin):
@@ -65,10 +65,15 @@ class NotificationsAdmin(admin.ModelAdmin):
 class SupportticketsAdmin(admin.ModelAdmin):
     list_display = ['company', 'ticket_id', 'customer_id', 'subject', 'description', 'status', 'priority', 'assigned_to', 'resolution', 'resolution_date']
     
+@admin.register(CollateralDocuments)
+class CollateralDocumentsAdmin(admin.ModelAdmin):
+    list_display = ['company', 'application_id', 'document_name', 'additional_documents', 'description']
+
 @admin.register(Collaterals)
 class CollateralsAdmin(admin.ModelAdmin):
     list_display = ['company', 'collateral_id', 'loanapp_id', 'customer_id', 'collateral_type', 'collateral_value', 'valuation_date', 'collateral_status', 'insurance_status']
-    
+
+
 @admin.register(LoanAgreement)
 class LoanagreementAdmin(admin.ModelAdmin):
     list_display = ['company', 'agreement_id', 'loanapp_id', 'customer_id', 'agreement_terms', 'signed_at', 'agreement_date', 'borrower_signature', 'agreement_status', 'lender_signature', 'maturity_date']
@@ -100,4 +105,31 @@ class RepaymentscheduleAdmin(admin.ModelAdmin):
 @admin.register(Penalties)
 class PenaltiesAdmin(admin.ModelAdmin):
     list_display = ['company', 'penalty_id','loan_application', 'repaymentschedule_id', 'panalty_date', 'penalty_amount', 'penalty_reason', 'payment_status', 'transaction_refference']
+
+@admin.register(LoanAccount)
+class LoanAccountAdmin(admin.ModelAdmin):
+    list_display = ['company', 'loan', 'principal_amount', 'interest_amount', 'penalty_amount', 'outstanding_balance']
     
+@admin.register(LoanDisbursementAccount)
+class LoanDisbursementAccountAdmin(admin.ModelAdmin):
+    list_display = ['company', 'loan','amount', 'milestone_account', 'loan_account']
+
+@admin.register(LoanRepaymentAccount)
+class LoanRepaymentAccountAdmin(admin.ModelAdmin):
+    list_display = ['company', 'loan', 'repayment_date', 'amount', 'payment_method', 'transaction_reference']
+    
+@admin.register(PenaltyAccount)
+class PenaltyAccountAdmin(admin.ModelAdmin):
+    list_display = ['company', 'loan','penalty_date', 'penalty_amount', 'penalty_reason', 'status']
+
+@admin.register(InterestAccount)
+class InterestAccountAdmin(admin.ModelAdmin):
+    list_display = ['company', 'loan', 'interest_accrued', 'interest_payment_date', 'interest_payment_amount']
+    
+@admin.register(MilestoneAccount)
+class MilestoneAccountAdmin(admin.ModelAdmin):
+    list_display = ['company', 'loan','milestone_header', 'milestone_cost', 'disbursement_date', 'status']
+
+@admin.register(LoanEntry)
+class LoanEntryAdmin(admin.ModelAdmin):
+    list_display = ['company', 'loan','transaction_type', 'amount', 'transaction_date', 'transaction_reference']  

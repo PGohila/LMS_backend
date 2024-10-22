@@ -40,6 +40,11 @@ class MsToModuleMapping(models.Model):
 # ============= Masters =====================
 class Company(models.Model):
     name = models.CharField(max_length=100)
+    address = models.TextField()
+    email = models.EmailField()
+    phone = models.CharField(max_length=20)
+    registration_number = models.CharField(max_length=100)
+    incorporation_date = models.DateField(blank=True,null=True)
     description = models.TextField(null=True, blank=True)
     is_active = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True)
@@ -86,22 +91,26 @@ class PaymentMethod(models.Model):
 	created_at = models.DateTimeField(auto_now_add=True)
 	updated_at = models.DateTimeField(auto_now=True)   
 
-class   LoanType(models.Model):
-	company = models.ForeignKey(Company,on_delete=models.CASCADE, related_name='%(class)s_company')
-	loantype_id = models.CharField(max_length=50,unique = True)
-	loantype = models.CharField(max_length=100) # personal loan, housing loan
-	description = models.TextField(blank = True,null =True)
-	interest_rate = models.FloatField(default = 0.0) # percentage
-	loan_teams = models.IntegerField() # Standard loan term duration for this type, in months.
-	min_loan_amt = models.FloatField(default = 0.0)
-	max_loan_amt = models.FloatField(default = 0.0)
-	eligibility = models.TextField() # Conditions a borrower must meet to qualify for this loan with customer income.
-	collateral_required = models.BooleanField(default=False)
-	charges = models.TextField() # Any associated fees like processing or administration fees.
-	is_active = models.BooleanField(default=False)
-	created_at = models.DateTimeField(auto_now_add=True)
-	updated_at = models.DateTimeField(auto_now=True) 
-
+class LoanType(models.Model):
+    DISBURSEMENT_BENEFICIARY_CHOICES = [
+        ('pay_self', 'Pay Self'),
+        ('pay_milestone', 'Pay Milestone'),
+    ]
+    company = models.ForeignKey(Company,on_delete=models.CASCADE, related_name='%(class)s_company')
+    loantype_id = models.CharField(max_length=50,unique = True)
+    loantype = models.CharField(max_length=100) # personal loan, housing loan
+    disbursement_beneficiary = models.CharField(max_length=20,choices=DISBURSEMENT_BENEFICIARY_CHOICES,default='pay_self') # 
+    description = models.TextField(blank = True,null =True)
+    interest_rate = models.FloatField(default = 0.0) # percentage
+    loan_teams = models.IntegerField() # Standard loan term duration for this type, in months.
+    min_loan_amt = models.FloatField(default = 0.0)
+    max_loan_amt = models.FloatField(default = 0.0)
+    eligibility = models.TextField() # Conditions a borrower must meet to qualify for this loan with customer income.
+    collateral_required = models.BooleanField(default=False)
+    charges = models.TextField() # Any associated fees like processing or administration fees.
+    is_active = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True) 
 
 # Collateral Type Master Table
 class CollateralType(models.Model):
@@ -120,21 +129,29 @@ class CollateralType(models.Model):
 		return self.name
 
 #================== Processing =====================
-
-
 class Customer(models.Model):
+    EMPLOYMENT_STATUS = [
+        ('Employed','Employed'), # The borrower has a job and receives a regular income.
+		('Unemployed','Unemployed'), # The borrower is currently without a job and does not have a source of income.
+		('Self_Employed','Self-Employed'), # The borrower works for themselves, such as owning a business or freelancing.
+        ('Part_Time','Part-Time'), # The borrower works less than full-time hours.
+        ('Retired','Retired'), # The borrower is no longer working and may be relying on retirement income.
+        ('Student','Student'), #  The borrower is currently enrolled in an educational institution.
+        ('Other','Other'), # Any other status that doesn’t fit into the above categories.
+    ]
     company_id = models.ForeignKey(Company,on_delete=models.CASCADE)
     customer_id = models.CharField(max_length=20,unique=True)
     firstname = models.CharField(max_length=20)
     lastname = models.CharField(max_length=50,blank=True,null=True)
     email = models.EmailField()
+    age = models.IntegerField()
     phone_number = models.CharField(max_length=15)
     address = models.TextField()
     dateofbirth = models.DateField()
     customer_income = models.FloatField(default = 0.0) # monthly income
-    identification_type = models.ForeignKey(IdentificationType,on_delete=models.CASCADE)
-    identification_number = models.CharField(max_length=50,blank=True,null=True)
     credit_score = models.IntegerField(default=0)
+    employment_status = models.CharField(max_length=100,choices=EMPLOYMENT_STATUS)
+    existing_liabilities = models.FloatField(default=0.0) # Stores the result of the eligibility check. mean previous loan outstanding amount
     expiry_date = models.DateField(null=True, blank=True)
     is_active = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True)
@@ -150,13 +167,10 @@ class CustomerDocuments(models.Model):
     document_type = models.ForeignKey(IdentificationType,on_delete=models.CASCADE, related_name='%(class)s_document_type')
     documentfile = models.FileField(upload_to='documents/' ,blank=True,null=True )
     uploaded_at = models.DateField(auto_now_add=True)
-    verified = models.BooleanField(default=False)
-    verified_by = models.CharField(max_length=50,blank=True,null=True)
-    verified_at = models.DateField(blank=True,null=True)
+    is_active = models.BooleanField(default=False)
+    description = models.TextField(blank=True,null=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
-
-
 
 class LoanCalculators(models.Model):
 	loan_amount = 	models.FloatField(default = 0.0) # principal amount
@@ -204,14 +218,14 @@ class LoanApplication(models.Model):
     company = models.ForeignKey(Company,on_delete=models.CASCADE, related_name='%(class)s_company')
     application_id = models.CharField(max_length=20,unique=True)
     customer_id = models.ForeignKey(Customer,on_delete=models.CASCADE)
-    loantype = models.ForeignKey(LoanType,on_delete=models.CASCADE, related_name='%(class)s_loantype')
+    loantype = models.ForeignKey(LoanType,on_delete=models.CASCADE, related_name='%(class)s_loantype') # personal loan etc
     loan_amount = models.FloatField(default=0.0) # requested amount
     loan_purpose = models.TextField()
-    application_status = models.CharField(max_length=20,choices=[
+    application_status = models.CharField(max_length=100,choices=[
         ('Submitted', 'Submitted'),
         ('Approved', 'Approved'),
         ('Rejected', 'Rejected')
-        ]) 
+        ])  # application approval status
     interest_rate = models.FloatField(default=0.0)
     tenure_type = models.CharField(max_length=100,choices=[
         ('days', 'Days'),
@@ -219,6 +233,7 @@ class LoanApplication(models.Model):
         ('months', 'Months'),
         ('years', 'Years')])
     tenure = models.IntegerField(help_text="Duration of the loan in months") # Duration of the loan in months
+    disbursement_type = models.CharField(max_length=50, choices=[('one_off', 'One-Off'), ('trenches', 'Trenches')]) # one off - mean  entire loan amount to the borrower at once.  trenches-  the loan funds in multiple installments (or "tranches") over time, often based on specific criteria or project milestones.
     repayment_schedule = models.CharField(max_length=100,choices=[
         ('daily', 'Daily'),
         ('weekly', 'Weekly'),
@@ -249,10 +264,11 @@ class LoanApplication(models.Model):
         ('bullet_repayment', 'Bullet Repayment'),
         ('interest_first', 'Interest-Only Loans'),
     ])
+
     repayment_start_date = models.DateField()
     applied_at = models.DateField(auto_now=True) # application date
-    approved_at = models.DateField(blank=True,null=True)
-    rejected_reason = models.TextField(blank=True,null=True)
+    approved_at = models.DateField(blank=True,null=True) # loan application approved date
+    rejected_reason = models.TextField(blank=True,null=True) # loan rejected reason
     description = models.TextField(blank=True, null=True)
     workflow_stats = models.CharField(max_length=50,choices=[
         ('Submitted', 'Submitted'),
@@ -261,25 +277,70 @@ class LoanApplication(models.Model):
         ('Lender_Approved','Lender Approved'),
         ('Borrower_and_Lender_Approved', 'Borrower and Lender Approved'),
         ('Borrower_Rejected', 'Borrower Rejected'),
+        ('Agreement_completed','Agreement_completed'),
+        ('Agreement_dined','Agreement_dined'),
         ('Disbursment', 'Disbursment'),
         ('Processing', 'Processing'),
         ('Loan Closed', 'Loan Closed'),
         ])
     is_active = models.BooleanField(default=False)
+    is_eligible = models.BooleanField(default=False) # customer eligible checking
+    eligible_rejection_reason = models.TextField(null=True, blank=True)
+    checked_on = models.DateTimeField(null=True, blank=True)
+    risk_score = models.FloatField(default=0.0, null=True, blank=True)  # E.g., from 0.00 to 100.00
+    risk_factor = models.TextField(null=True, blank=True)  # To store detailed risk factors as text
+    document_verified = models.BooleanField(default=False) # loan customer documents verifications(update in document verification screen)
+    document_verified_datetime = models.DateTimeField(null=True, blank=True) # (update in document verification screen)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
 class Loan(models.Model):
     company = models.ForeignKey(Company,on_delete=models.CASCADE, related_name='%(class)s_company')
+    customer = models.ForeignKey(Customer,on_delete=models.CASCADE, related_name='%(class)s_customer')
     loanapp_id = models.ForeignKey(LoanApplication,on_delete=models.CASCADE, related_name='%(class)s_loanapp')
     loan_id = models.CharField(max_length=20, unique=True)
     loan_amount = models.FloatField(default = 0.0)
+    approved_amount = models.FloatField(default = 0.0)
     interest_rate = models.FloatField(default = 0.0)
-    disbursement_amount = models.FloatField(default = 0.0) # toatal disbursement amount
+    disbursement_amount = models.FloatField(default = 0.0) # total disbursement amount
     tenure = models.IntegerField()  # In months
+    tenure_type = models.CharField(max_length=100,choices=[
+        ('days', 'Days'),
+        ('weeks', 'Weeks'),
+        ('months', 'Months'),
+        ('years', 'Years')])
+    repayment_schedule = models.CharField(max_length=100,choices=[
+        ('daily', 'Daily'),
+        ('weekly', 'Weekly'),
+        ('monthly', 'Monthly'),
+        ('quarterly', 'Quarterly'),
+        ('halfyearly', 'Half Yearly'),
+        ('annually', 'Annually'),
+        ('one_time', 'One Time')])
+    repayment_mode = models.CharField(max_length=100,choices=[
+        ('principal_only', 'Principal Only'),
+        ('interest_only', 'Interest Only'),
+        ('both', 'Principal and Interest'),
+        ('interest_first', 'Interest First, Principal Later'),
+        ('principal_end', 'Principal at End, Interest Periodically'),
+    ])
+    interest_basics = models.CharField(max_length=100,choices=[
+        ('365', '365 Days Basis'),
+        ('other', 'Other Basis'),
+    ])
+    loan_calculation_method = models.CharField(max_length=150,choices=[
+        ('reducing_balance', 'Reducing Balance Method'),
+        ('flat_rate', 'Flat Rate Method'),
+        ('constant_repayment', 'Constant Repayment (Amortization)'),
+        ('simple_interest', 'Simple Interest'),
+        ('compound_interest', 'Compound Interest'),
+        ('graduated_repayment', 'Graduated Repayment'),
+        ('balloon_payment', 'Balloon Payment'),
+        ('bullet_repayment', 'Bullet Repayment'),
+        ('interest_first', 'Interest-Only Loans'),
+    ])
     loan_purpose = models.TextField()
     paid_amount = models.FloatField(default = 0.0)
-    borrower = models.ForeignKey(Customer,on_delete=models.CASCADE)
     lender = models.ForeignKey(User, related_name='lender', on_delete=models.CASCADE,blank=True,null=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -291,31 +352,166 @@ class Loan(models.Model):
         ('Lender_Approved','Lender Approved'),
         ('Borrower_and_Lender_Approved', 'Borrower and Lender Approved'),
         ('Borrower_Rejected', 'Borrower Rejected'),
+        ('Agreement_completed','Agreement_completed'),
+        ('Agreement_dined','Agreement_dined'),
         ('Disbursment', 'Disbursment'),
         ('Processing', 'Processing'),
         ('Loan Closed', 'Loan Closed'),
         ])
-
+    is_eligible = models.BooleanField(default=False) # customer eligible checking
+    eligible_rejection_reason = models.TextField(null=True, blank=True)
+    checked_on = models.DateTimeField(null=True, blank=True)
+    risk_score = models.FloatField(default=0.0, null=True, blank=True)  # E.g., from 0.00 to 100.00
+    risk_factor = models.TextField(null=True, blank=True)  # To store detailed risk factors as text
+    is_active = models.BooleanField(default=True)
     def __str__(self):
         return f"Loan {self.loan_id}"
+    
+class ValueChain(models.Model):
+    id = models.AutoField(primary_key=True)
+    loan_application = models.ForeignKey('LoanApplication', on_delete=models.CASCADE)
+    status = models.CharField(max_length=50, choices=[
+        ('applied', 'Applied'),
+        ('under_review', 'Under Review'),
+        ('approved', 'Approved'),
+        ('disbursed', 'Disbursed'),
+        ('completed', 'Completed'),
+        ('rejected', 'Rejected'),
+    ])
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    notes = models.TextField(blank=True, null=True)
+    risk_score = models.FloatField(default=0.0)
+    risk_factor = models.CharField(max_length=100, blank=True, null=True)
+
+    def __str__(self):
+        return f'Value Chain for Loan {self.loan_application.id} - Status: {self.status}'
+    
+# This is the main account for tracking principal, interest, and penalties for each loan
+class LoanAccount(models.Model):
+    company = models.ForeignKey(Company,on_delete=models.CASCADE, related_name='%(class)s_company')
+    loan = models.OneToOneField(Loan, on_delete = models.CASCADE, related_name="loan_detail5")
+    principal_amount = models.FloatField(default = 0.0)
+    interest_amount = models.FloatField(default = 0.0)
+    penalty_amount = models.FloatField(default = 0.0)
+    outstanding_balance = models.FloatField(default = 0.0)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f"Loan Account for {self.loan.id}"
+    
+# This model tracks the disbursement of funds for each loan.
+class LoanDisbursementAccount(models.Model):
+    company = models.ForeignKey(Company,on_delete=models.CASCADE, related_name='%(class)s_company')
+    loan = models.OneToOneField(Loan, on_delete=models.CASCADE, related_name="loan_detail4")
+    amount = models.FloatField(default=0.0)
+    milestone_account = models.ForeignKey('MilestoneAccount', on_delete=models.SET_NULL, null=True, blank=True)
+    loan_account = models.ForeignKey('LoanAccount', on_delete=models.SET_NULL, null=True, blank=True)
+    disbursement_date = models.DateTimeField(auto_now_add=True)
+    status = models.CharField(max_length=50, default='pending', choices=[('pending', 'Pending'), ('completed', 'Completed')])
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    def __str__(self):
+        return f"Disbursement for Loan {self.loan_application.id}"
+
+# This model handles all repayments made by the borrower.
+class LoanRepaymentAccount(models.Model):
+    company = models.ForeignKey(Company,on_delete=models.CASCADE, related_name='%(class)s_company')
+    loan = models.OneToOneField(Loan, on_delete=models.CASCADE, related_name="loan_detail3")
+    repayment_date = models.DateTimeField(auto_now_add=True)
+    amount = models.FloatField(default=0.0)
+    payment_method = models.CharField(max_length=50, choices=[('bank_transfer', 'Bank Transfer'), ('cash', 'Cash')])
+    transaction_reference = models.CharField(max_length=100, null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    def __str__(self):
+        return f"Repayment for Loan {self.loan.id}"
+    
+
+
+# This is the main account for tracking principal, interest, and penalties for each loan
+class PenaltyAccount(models.Model):
+    company = models.ForeignKey(Company,on_delete=models.CASCADE, related_name='%(class)s_company')
+    loan = models.OneToOneField(Loan, on_delete=models.CASCADE, related_name="loan_detail2")
+    penalty_date = models.DateTimeField(auto_now_add=True)
+    penalty_amount = models.FloatField(default=0.0)
+    penalty_reason = models.TextField()
+    status = models.CharField(max_length=50, default='unpaid', choices=[('unpaid', 'Unpaid'), ('paid', 'Paid')])
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    def __str__(self):
+        return f"Penalty for Loan {self.loan.id}"
+
+# This handles the recording of interest accruals and payments.
+class InterestAccount(models.Model):
+    company = models.ForeignKey(Company,on_delete=models.CASCADE, related_name='%(class)s_company')
+    loan = models.OneToOneField(Loan, on_delete=models.CASCADE, related_name="loan_detail")
+    interest_accrued = models.FloatField(default=0.0)
+    interest_payment_date = models.DateField(null=True, blank=True)
+    interest_payment_amount = models.FloatField(default=0.0)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    def __str__(self):
+        return f"Interest Account for Loan {self.loan.id}"
+
+# This tracks disbursements made to specific milestones if the loan is based on milestones.
+class MilestoneAccount(models.Model):
+    company = models.ForeignKey(Company,on_delete=models.CASCADE, related_name='%(class)s_company')
+    loan = models.OneToOneField(Loan, on_delete=models.CASCADE, related_name="loan_detail1")
+    milestone_header = models.ForeignKey('ValueChain', on_delete=models.CASCADE)  # This is the value chain or scheme-based identifier
+    milestone_cost = models.FloatField(default=0.0)
+    disbursement_date = models.DateTimeField(auto_now_add=True)
+    status = models.CharField(max_length=50, default='pending', choices=[('pending', 'Pending'), ('completed', 'Completed')])
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f"Milestone Account for Loan {self.loan.id}"
+
+# This captures the complete loan transaction history from disbursement to repayment, interest, and penalties.
+class LoanEntry(models.Model):
+    company = models.ForeignKey(Company,on_delete=models.CASCADE, related_name='%(class)s_company')
+    loan = models.OneToOneField(Loan, on_delete=models.CASCADE, related_name="loan_detail7")
+    transaction_type = models.CharField(max_length=50, choices=[('disbursement', 'Disbursement'), ('repayment', 'Repayment'), ('penalty', 'Penalty'), ('interest', 'Interest')])
+    amount = models.FloatField(default=0.0)
+    transaction_date = models.DateTimeField(auto_now_add=True)
+    transaction_reference = models.CharField(max_length=100, null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    def __str__(self):
+        return f"Transaction {self.transaction_type} for Loan {self.loan.id}"
 
 class LoanAgreement(models.Model):
     company = models.ForeignKey(Company, on_delete=models.CASCADE, related_name='%(class)s_company')
-    agreement_id = models.CharField(max_length=20)
-    loan_id = models.ForeignKey(Loan,on_delete=models.CASCADE, related_name='%(class)s_company')
-    loanapp_id = models.ForeignKey(LoanApplication, on_delete=models.CASCADE, related_name='%(class)s_loan_id')
+    agreement_id = models.CharField(max_length=20, unique=True)
+    loan_id = models.ForeignKey(Loan, on_delete=models.CASCADE, related_name='%(class)s_loan_id')
+    loanapp_id = models.ForeignKey(LoanApplication, on_delete=models.CASCADE, related_name='%(class)s_loanapp_id')
     customer_id = models.ForeignKey(Customer, on_delete=models.CASCADE, related_name='%(class)s_customer_id')
-    agreement_terms = models.TextField( blank=True,null=True)
+    agreement_terms = models.TextField(blank=True, null=True)
     agreement_date = models.DateTimeField(auto_now_add=True)
-    borrower_signature = models.FileField(upload_to='signatures/borrowers/',blank=True,null=True)
-    lender_signature = models.FileField(upload_to='signatures/lenders/',blank=True,null=True)
-    signed_at = models.DateTimeField(blank=True,null=True)
-    agreement_status = models.CharField(max_length=70,choices = [
+    borrower_signature = models.FileField(upload_to='signatures/borrowers/', blank=True, null=True)
+    lender_signature = models.FileField(upload_to='signatures/lenders/', blank=True, null=True)
+    signed_at = models.DateTimeField(blank=True, null=True)
+    agreement_status = models.CharField(max_length=70, choices=[
         ('Active', 'Active'),
         ('Terminated', 'Terminated'),
         ('Completed', 'Completed'),
-    ]) 
-    maturity_date = models.DateTimeField(blank=True,null=True)
+    ])
+    disbursement_approval = models.CharField(max_length=70, choices=[
+        ('Active', 'Active'),
+        ('Inactive', 'Inactive'),
+        ('Denied', 'Denied'),
+        ('Approved', 'Approved'),
+    ],default='Active')
+    disburse_reject_reason = models.TextField(blank=True, null=True)
+    maturity_date = models.DateTimeField(blank=True, null=True)
+    is_active = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -328,9 +524,8 @@ class Disbursement(models.Model):
     disbursement_date = models.DateField(auto_now=True)
     amount = models.FloatField(default=0.0)
     disbursement_type = models.CharField(max_length=50,choices=[
-        ('Initial', 'Initial'),
-        ('Partial', 'Partial'),
-        ('Final', 'Final'),
+        ('one_off', 'One-Off'), 
+        ('trenches', 'Trenches')
     ])
     disbursement_status = models.CharField(max_length=50,choices=[
         ('Completed', 'Completed'),
@@ -352,8 +547,9 @@ class Disbursement(models.Model):
 class RepaymentSchedule(models.Model):
     company = models.ForeignKey(Company,on_delete=models.CASCADE, related_name='%(class)s_company')
     loan_application = models.ForeignKey(LoanApplication,on_delete=models.CASCADE,related_name='%(class)s_loan_application')
+    loan_id = models.ForeignKey(Loan,on_delete=models.CASCADE,blank=True,null=True)
     period = models.IntegerField(default=0)
-    schedule_id = models.CharField(max_length=50,unique=True)
+    schedule_id = models.CharField(max_length=50)
     repayment_date = models.DateField()
     instalment_amount = models.FloatField(default = 0.0)
     paid_amount = models.FloatField(default = 0.0)
@@ -367,6 +563,10 @@ class RepaymentSchedule(models.Model):
     payment_method = models.ForeignKey(PaymentMethod,on_delete=models.CASCADE,related_name='%(class)s_payment_method',blank=True,null=True)
     transaction_id = models.CharField(max_length=50,blank=True,null=True)
     notes = models.TextField(blank=True,null=True)
+    confirmed_status = models.CharField(max_length=50,choices = [
+        ('Confirmed', 'Confirmed'),
+        ('Pending', 'Pending'),
+    ],default="Pending")
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -416,8 +616,6 @@ class LoanClosure(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
-
-    
 class Collaterals(models.Model):
     company = models.ForeignKey(Company,on_delete=models.CASCADE)
     collateral_id = models.CharField(max_length=20,unique=True)
@@ -426,7 +624,6 @@ class Collaterals(models.Model):
     collateral_type = models.ForeignKey(CollateralType,on_delete=models.CASCADE)
     collateral_value = models.FloatField(default = 0.0,help_text="Monetary value of the collateral") 
     valuation_date = models.DateField()
-    valuation_report = models.FileField(upload_to='valuation_reports/', blank=True, null=True, help_text="Upload the valuation report document.")
     collateral_status = models.CharField(max_length=50,choices=[
         ('Held', 'Held'),
         ('Released', 'Released'),
@@ -436,6 +633,17 @@ class Collaterals(models.Model):
         ('Insured', 'Insured'),
         ('Not insured', 'Not insured'),
     ])
+    borrower_signature = models.FileField(upload_to='borrower_signatures/', blank=True, null=True, help_text="Upload borrower signature document.")
+    description = models.TextField(blank=True, null=True, help_text="A brief description of the collateral.")
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+class CollateralDocuments(models.Model):
+    company = models.ForeignKey(Company,on_delete=models.CASCADE)
+    application_id = models.ForeignKey(LoanApplication,on_delete=models.CASCADE)
+    document_name = models.CharField(max_length=100)
+    additional_documents = models.FileField(upload_to='additional_documents/', blank=True, null=True, help_text="Upload any additional documents related to the collateral.")
+    description = models.TextField(blank=True,null=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 

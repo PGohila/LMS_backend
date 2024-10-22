@@ -37,7 +37,7 @@ class CurrencySerializer(serializers.ModelSerializer):
 
 class CustomerSerializer(serializers.ModelSerializer):
     company_id = CompanySerializer()
-    identification_type = IdentificationtypeSerializer()
+
     class Meta:
         model = Customer
         fields = "__all__"
@@ -77,7 +77,7 @@ class LoanapplicationSerializer(serializers.ModelSerializer):
 class LoanSerializer(serializers.ModelSerializer):
     company = CompanySerializer()
     loanapp_id = LoanapplicationSerializer()
-    borrower = CustomerSerializer()
+    customer = CustomerSerializer()
     class Meta:
         model = Loan
         exclude = ['created_at','updated_at']
@@ -96,12 +96,25 @@ class SupportTicketSerializer(serializers.ModelSerializer):
 
 
 class CollateralsSerializer(serializers.ModelSerializer):
+    company = CompanySerializer()
+    loanapp_id = LoanapplicationSerializer()
+    customer_id = CustomerSerializer()
+    collateral_type = CollateraltypeSerializer()
     class Meta:
         model = Collaterals
         fields = "__all__"
 
+class CollateralDocumentsSerializer(serializers.ModelSerializer):
+    application_id = LoanapplicationSerializer()
+    class Meta:
+        model = CollateralDocuments
+        fields = "__all__"
+
 
 class LoanagreementSerializer(serializers.ModelSerializer):
+    loan_id = LoanSerializer()
+    loanapp_id = LoanapplicationSerializer()
+    customer_id = CustomerSerializer()
     class Meta:
         model = LoanAgreement
         fields = "__all__"
@@ -128,6 +141,11 @@ class PaymentsSerializer(serializers.ModelSerializer):
 
 
 class DisbursementSerializer(serializers.ModelSerializer):
+    customer_id = CustomerSerializer()
+    loan = LoanSerializer()
+    loan_application = LoanapplicationSerializer()
+    bank = BankAccountSerializer()
+    currency = CurrencySerializer()
     class Meta:
         model = Disbursement
         fields = "__all__"

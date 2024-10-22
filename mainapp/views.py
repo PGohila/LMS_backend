@@ -99,10 +99,10 @@ class MSAPIModule(APIView):
             if serializers.is_valid():
                 ms_id = serializers.data['ms_id']
                 ms_payload = serializers.data['ms_payload']
-                file = request.data.get('files')
-                if file:
-                    ms_payload['attachment'] = file
-             
+                if request.FILES:
+                    attachments = request.FILES.keys()
+                    for key in attachments:
+                        ms_payload[key] = request.data.get(str(key))
                 get_response = check_ms_id_exists_or_not(ms_id)
                 get_ms_payload = payload_key_validation(ms_id, ms_payload)
                 if get_response == 'valid_ms_id':

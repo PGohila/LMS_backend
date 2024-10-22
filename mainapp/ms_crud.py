@@ -8,8 +8,8 @@ from django.utils import timezone
 from datetime import timedelta,datetime
 from dateutil.relativedelta import relativedelta
 from .loan_calculation import *
-
-def create_company(name, description, is_active):
+from django.shortcuts import get_object_or_404
+def create_company(name,address,email,phone,registration_number,is_active=False, description = None,incorporation_date = None):
     try:
         request = get_current_request()
         if not request.user.is_authenticated:
@@ -18,6 +18,11 @@ def create_company(name, description, is_active):
         instance = Company.objects.create(
             name=name,
             description=description,
+            address = address,
+            email = email,
+            phone = phone,
+            registration_number = registration_number,
+            incorporation_date = incorporation_date,
             is_active=is_active,
         )
         return success(f'Successfully created {instance}')
@@ -28,15 +33,20 @@ def create_company(name, description, is_active):
         print(f"An error occurred: {e}")
         return error(f"An error occurred: {e}")
 
-def update_company(company_id,name=None, description=None, is_active=None):
+def update_company(company_id,address,email,phone,registration_number,name=None, description=None,incorporation_date=None, is_active=None):
     try:
         request = get_current_request()
         if not request.user.is_authenticated:
             return error('Login required')
         
         instance = Company.objects.get(pk=company_id)
+        instance.address = address
+        instance.email = email
+        instance.phone = phone
+        instance.registration_number = registration_number
         instance.name = name if name is not None else instance.name
         instance.description = description if description is not None else instance.description
+        instance.incorporation_date = incorporation_date if incorporation_date is not None else instance.incorporation_date
         instance.is_active = is_active if is_active is not None else instance.is_active
         instance.save()
         return success('Successfully Updated')
@@ -86,7 +96,7 @@ def delete_company(company_id):
     except Exception as e:
         return error(f"An error occurred:{e}")
 
-def create_customer(company_id, firstname, lastname, email, phone_number, address, dateofbirth, customer_income,identification_type_id, identification_number, expiry_date, is_active):
+def create_customer(company_id, firstname, lastname, email, phone_number, address, dateofbirth,age, customer_income, expiry_date, is_active):
     """ ============== Customer Creation ==================="""
     try:
         request = get_current_request()
@@ -96,8 +106,6 @@ def create_customer(company_id, firstname, lastname, email, phone_number, addres
         if company_id is not None: 
             Company.objects.get(pk=company_id)
 
-        if identification_type_id is not None: 
-            IdentificationType.objects.get(pk=identification_type_id)
 
         # generate Unique id 
         generate_id = Customer.objects.last()
@@ -115,9 +123,9 @@ def create_customer(company_id, firstname, lastname, email, phone_number, addres
             phone_number = phone_number,
             address = address,
             dateofbirth = dateofbirth,
+            age = age,
             customer_income = customer_income,
-            identification_type_id = identification_type_id,
-            identification_number = identification_number,
+         
             expiry_date = expiry_date,
             is_active = is_active,
         )
@@ -131,7 +139,7 @@ def create_customer(company_id, firstname, lastname, email, phone_number, addres
     except Exception as e:
         return error(f"An error occurred: {e}")
 
-def update_customer(customer_id,company_id=None, firstname=None, lastname=None, email=None, phone_number=None, address=None,customer_income=None, dateofbirth=None, identification_type_id=None, identification_number=None, expiry_date=None, is_active=None):
+def update_customer(customer_id,company_id=None, firstname=None, lastname=None,age=None, email=None, phone_number=None, address=None,customer_income=None, dateofbirth=None, expiry_date=None, is_active=None):
     try:
         request = get_current_request()
         if not request.user.is_authenticated:
@@ -139,9 +147,6 @@ def update_customer(customer_id,company_id=None, firstname=None, lastname=None, 
         
         if company_id is not None: 
             Company.objects.get( pk=company_id )
-
-        if identification_type_id is not None: 
-            IdentificationType.objects.get(pk=identification_type_id)
 
         instance = Customer.objects.get(pk=customer_id)
 
@@ -153,8 +158,7 @@ def update_customer(customer_id,company_id=None, firstname=None, lastname=None, 
         instance.address = address if address is not None else instance.address
         instance.customer_income = customer_income if customer_income is not None else instance.customer_income
         instance.dateofbirth = dateofbirth if dateofbirth is not None else instance.dateofbirth
-        instance.identification_type_id = identification_type_id if identification_type_id is not None else instance.identification_type_id
-        instance.identification_number = identification_number if identification_number is not None else instance.identification_number
+        instance.age = age if age is not None else instance.age
         instance.expiry_date = expiry_date if expiry_date is not None else instance.expiry_date
         instance.is_active = is_active if is_active is not None else instance.is_active
         instance.save()
@@ -210,7 +214,7 @@ def delete_customer(customer_id):
         return error(f"An error occurred: {e}")
 
 
-def create_customerdocuments(company_id,customer_id, document_type_id, attachment):
+def create_customerdocuments(company_id,customer_id, document_type_id, attachment,is_active=False,description=None):
     """ ================== customer Documentation ====================== """
     try:
         request = get_current_request()
@@ -240,6 +244,8 @@ def create_customerdocuments(company_id,customer_id, document_type_id, attachmen
             documentid=documentid,
             document_type_id=document_type_id,
             documentfile = attachment,
+            is_active = is_active,
+            description = description,
  
         )
         return success(f'Successfully created {instance}')
@@ -254,7 +260,7 @@ def create_customerdocuments(company_id,customer_id, document_type_id, attachmen
     except Exception as e:
         return error(f"An error occurred: {e}")
 
-def update_customerdocuments(customerdocuments_id,company_id=None,customer_id=None, document_type_id=None,documentfile=None):
+def update_customerdocuments(customerdocuments_id,company_id=None,customer_id=None, document_type_id=None,documentfile=None,is_active=False,description=None):
     try:
         request = get_current_request()
         if not request.user.is_authenticated:
@@ -271,6 +277,8 @@ def update_customerdocuments(customerdocuments_id,company_id=None,customer_id=No
         instance.customer_id_id = customer_id if customer_id is not None else instance.customer_id.id
         instance.document_type_id = document_type_id if document_type_id is not None else instance.document_type.id
         instance.documentfile = documentfile if documentfile is not None else instance.documentfile
+        instance.is_active = is_active
+        instance.description = description if description is not None else instance.description
 
         instance.save()
         return success('Successfully Updated')
@@ -339,18 +347,19 @@ def delete_customerdocuments(customerdocuments_id):
         return error(f"An error occurred: {e}")
 
 
-def customerdoc_verification(customerdoc_id = None):
+def customerdoc_verification(customerdoc_id = None): # = customerdoc_id = Application id
     """ ========================= Customer Document Verification ======================"""
     try:
         if customerdoc_id is not None:
-            customers = CustomerDocuments.objects.get(id = customerdoc_id)
-            customers.verified = True
-            customers.save()
+            customers = LoanApplication.objects.get(id = customerdoc_id)
+            customers.document_verified = True
+            customers.document_verified_datetime = datetime.now()
+            customers.save() 
         return success("Successfully Verified")
     except Exception as e:
         return error(f"An error occurred: {e}")
 
-def create_loanapplication(company_id, customer_id, loan_amount,loantype_id, loan_purpose, interest_rate,loan_calculation_method,repayment_schedule,repayment_mode,interest_basics, tenure,tenure_type,description,repayment_date,is_active):
+def create_loanapplication(company_id, customer_id, loan_amount,loantype_id, loan_purpose, interest_rate,loan_calculation_method,repayment_schedule,repayment_mode,interest_basics,disbursement_type, tenure,tenure_type,description,is_active,repayment_date=None):
     try:  
         request = get_current_request()
         if not request.user.is_authenticated:
@@ -384,6 +393,7 @@ def create_loanapplication(company_id, customer_id, loan_amount,loantype_id, loa
             repayment_schedule = repayment_schedule,
             repayment_mode = repayment_mode,
             interest_rate = interest_rate,
+            disbursement_type = disbursement_type,
             interest_basics = interest_basics,
             repayment_start_date = repayment_date,
             tenure = tenure,
@@ -406,7 +416,7 @@ def create_loanapplication(company_id, customer_id, loan_amount,loantype_id, loa
     except Exception as e:
         return error(f"An error occurred: {e}")
 
-def update_loanapplication(loanapplication_id,company_id, customer_id, loan_amount,loantype_id, loan_purpose, interest_rate, tenure,tenure_type,description,is_active):
+def update_loanapplication(loanapplication_id,company_id, customer_id,disbursement_type, loan_amount,loantype_id,loan_calculation_method,repayment_schedule,repayment_mode,interest_basics,loan_purpose, interest_rate, tenure,tenure_type,description,is_active,repayment_date=None):
     try:
         request = get_current_request()
         if not request.user.is_authenticated:
@@ -424,7 +434,12 @@ def update_loanapplication(loanapplication_id,company_id, customer_id, loan_amou
         instance.customer_id_id = customer_id if customer_id is not None else instance.customer_id.id
         instance.loantype_id = loantype_id if loantype_id is not None else instance.loantype.id
         instance.loan_amount = loan_amount if loan_amount is not None else instance.loan_amount
+        instance.repayment_schedule = repayment_schedule if repayment_schedule is not None else instance.repayment_schedule
+        instance.repayment_mode = repayment_mode if repayment_mode is not None else instance.repayment_mode
+        instance.disbursement_type = disbursement_type if disbursement_type is not None else instance.disbursement_type
+        instance.interest_basics = interest_basics if interest_basics is not None else instance.interest_basics
         instance.loan_purpose = loan_purpose if loan_purpose is not None else instance.loan_purpose
+        instance.loan_calculation_method = loan_calculation_method if loan_calculation_method is not None else instance.loan_calculation_method
         instance.interest_rate = interest_rate if interest_rate is not None else instance.interest_rate
         instance.tenure = tenure if tenure is not None else instance.tenure
         instance.tenure_type = tenure_type if tenure_type is not None else instance.tenure_type
@@ -469,6 +484,23 @@ def view_loanapplication(loanapplication_id=None,company_id = None):
         # Return an error response with the exception message
         return error(f"An error occurred: {e}")
 
+def getting_approved_rejected_applications(company_id):
+    try:
+        records = LoanApplication.objects.filter(company_id = company_id,is_active=True )
+        serializer = LoanapplicationSerializer(records, many=True)
+        return success(serializer.data)
+    except Exception as e:
+        # Return an error response with the exception message
+        return error(f"An error occurred: {e}")
+
+def getting_approved_applications(company_id):
+    try:
+        records = LoanApplication.objects.filter(company_id = company_id,application_status__iexact = 'Approved',is_active=True)
+        serializer = LoanapplicationSerializer(records, many=True)
+        return success(serializer.data)
+    except Exception as e:
+        # Return an error response with the exception message
+        return error(f"An error occurred: {e}")
 
 def delete_loanapplication(loanapplication_id):
     try:
@@ -485,7 +517,126 @@ def delete_loanapplication(loanapplication_id):
     except Exception as e:
         return error(f"An error occurred: {e}")
 
-def loan_approval(loanapp_id, approval_status = None,rejected_reason = None):
+def check_loan_eligibilities_forall(company_id):
+    try:
+        request = get_current_request()
+        if not request.user.is_authenticated:
+            return error('Login required')
+        
+        instance = LoanApplication.objects.filter(is_active = True,company_id = company_id)
+        for applications in instance:
+            applicant_deatils = Customer.objects.get(pk=applications.customer_id.id)
+            existing_loan = Loan.objects.filter(customer_id = applications.id)
+            # Calculate Exsisting loan liabilities
+            existing_loan_liabilities = calculate_existing_liabilities(existing_loan)
+            applicant_deatils.existing_liabilities = existing_loan_liabilities
+            applicant_deatils.save()
+
+            # Perform eligibility check
+            is_eligible, errors = check_loan_eligibility(applicant_deatils, applications.loan_amount)
+            
+            if is_eligible == True:
+                applications.is_eligible = True
+                applications.checked_on = datetime.now()
+            else:
+                applications.eligible_rejection_reason = errors
+                applications.checked_on = datetime.now()
+            applications.save()
+    
+        status = {'eligible_status':is_eligible,'errors':errors}
+        
+        # Pass results to template
+        return success(status)
+
+    except LoanApplication.DoesNotExist:
+        return error('Instance does not exist')
+    except Exception as e:
+        return error(f"An error occurred: {e}")
+    
+def check_loan_eligibilities(application_id):
+    try:
+        request = get_current_request()
+        if not request.user.is_authenticated:
+            return error('Login required')
+        instance = LoanApplication.objects.get(pk=application_id)
+        applicant_deatils = Customer.objects.get(pk=instance.customer_id.id)
+        existing_loan = Loan.objects.filter(customer_id = applicant_deatils.id)
+        # Calculate Exsisting loan liabilities
+        existing_loan_liabilities = calculate_existing_liabilities(existing_loan)
+        applicant_deatils.existing_liabilities = existing_loan_liabilities
+        applicant_deatils.save()
+
+        # Perform eligibility check
+        is_eligible, errors = check_loan_eligibility(applicant_deatils, instance.loan_amount)
+        
+        if is_eligible == True:
+            instance.is_eligible = True
+            instance.checked_on = datetime.now()
+        else:
+            instance.eligible_rejection_reason = errors
+            instance.checked_on = datetime.now()
+        instance.save()
+    
+        status = {'eligible_status':is_eligible,'errors':errors}
+        
+        # Pass results to template
+        return success(status)
+
+    except LoanApplication.DoesNotExist:
+        return error('Instance does not exist')
+    except Exception as e:
+        return error(f"An error occurred: {e}")
+
+def loan_risk_assessment_list(company_id):
+    try:
+        request = get_current_request()
+        if not request.user.is_authenticated:
+            return error('Login required')
+        
+        instance = LoanApplication.objects.filter(company_id=company_id,is_active=True)
+        serializer = LoanapplicationSerializer(instance, many=True).data
+        # Compute the risk score for each loan application
+
+        for application, serialized_data in zip(instance, serializer):
+            customer = get_object_or_404(Customer,id=application.customer_id.id)
+            # Compute the risk score for the loan application
+            risk_score = calculate_risk_score(customer, application)  # Your custom function
+            
+            # Add or update the risk score in the serialized data
+            serialized_data['risk_score'] = risk_score
+            application.risk_score = float(risk_score)
+            application.save()
+        return success(serializer)
+    except LoanApplication.DoesNotExist:
+        return error('Instance does not exist')
+    except Exception as e:
+        return error(f"An error occurred: {e}")
+
+def loan_risk_assessment_detail(application_id):
+    try:
+        request = get_current_request()
+        if not request.user.is_authenticated:
+            return error('Login required')
+        
+        loan_application = get_object_or_404(LoanApplication, id=application_id)
+        serializer = LoanapplicationSerializer(loan_application).data
+        customer = get_object_or_404(Customer,id=loan_application.customer_id.id)
+
+        risk_score, risk_factors = calculate_risk_factors(customer, loan_application)
+        serializer['risk_score'] = risk_score
+        serializer['risk_factors'] = risk_factors
+        loan_application.risk_factor = risk_factors
+        loan_application.save()
+
+        return success(serializer)
+
+    except LoanApplication.DoesNotExist:
+        return error('Instance does not exist')
+    except Exception as e:
+        return error(f"An error occurred: {e}")
+
+
+def loan_approval(company_id,loanapp_id, approval_status = None,rejected_reason = None):
     try:
         request = get_current_request()
         if not request.user.is_authenticated:
@@ -499,6 +650,48 @@ def loan_approval(loanapp_id, approval_status = None,rejected_reason = None):
 
             # create loan
             loan = create_loan(loanapp_id)
+            print('loan',loan)
+            
+             # Create accounts for the loan
+            # 1. Create Loan Account
+            loan_account = LoanAccount.objects.create(
+                company_id = company_id,
+                loan_id = loan['data'],
+                principal_amount=instance.loan_amount,
+                outstanding_balance=instance.loan_amount,
+            )
+
+            # 2. Create Loan Disbursement Account
+            loan_disbursement_account = LoanDisbursementAccount.objects.create(
+                company_id = company_id,
+                loan_id = loan['data'],
+                amount=instance.loan_amount,
+                loan_account=loan_account,
+            )
+
+            # 3. Create Repayment Account
+            LoanRepaymentAccount.objects.create(
+                company_id = company_id,
+                loan_id=loan['data'],
+                amount=0.00,  # Initial amount can be set to 0.00
+                payment_method='bank_transfer',  # Default method, adjust as needed
+            )
+
+            # 4. Create Penalty Account (optional)
+            PenaltyAccount.objects.create(
+                company_id = company_id,
+                loan_id=loan['data'],
+                penalty_amount=0.00,  # Initial penalty amount can be set to 0.00
+                penalty_reason='N/A',  # Placeholder, adjust as necessary
+            )
+
+            # 5. Create Interest Account (optional)
+            InterestAccount.objects.create(
+                company_id = company_id,
+                loan_id=loan['data'],
+                interest_accrued=0.00,  # Initial interest accrued can be set to 0.00
+            )
+
             # calling repayment schedule 
             schedules = calculate_repayment_schedule(instance.loan_amount,instance.interest_rate, instance.tenure, instance.tenure_type, instance.repayment_schedule, instance.loan_calculation_method, instance.repayment_start_date, instance.repayment_mode)
             if schedules['status_code'] == 1: 
@@ -516,6 +709,7 @@ def loan_approval(loanapp_id, approval_status = None,rejected_reason = None):
                     company_id = instance.company.id,
                     schedule_id = schedule_id,
                     loan_application_id = instance.id,
+                    loan_id_id = loan,
                     period = float(data['Period']),
                     repayment_date = data['Due_Date'],
                     instalment_amount = float(data['Installment']),
@@ -554,17 +748,18 @@ def create_loan(loanapp_id):
 
         instance = Loan.objects.create(
             company_id = records.company.id,
+            customer_id = records.customer_id.id,
             loanapp_id_id = loanapp_id,
             loan_id = loan_id,
             loan_amount = float(records.loan_amount),
             interest_rate = float(records.interest_rate),
             tenure = records.tenure,
             loan_purpose = records.loan_purpose,
-            borrower_id = records.customer_id.id,
+
             workflow_stats = "Approved",
 
         )
-        return success(f'Successfully created {instance}')
+        return success(instance.id)
     except Company.DoesNotExist:
         return error('Invalid Company ID: Destination not found.')
     except Customer.DoesNotExist:
@@ -584,9 +779,9 @@ def view_loan(loan_id=None,loanapp_id = None,company=None):
             record = Loan.objects.get(pk=loan_id)
             serializer = LoanSerializer(record)
         if loanapp_id is not None:
-            record = Loan.objects.filter(loanapp_id_id=loanapp_id)
-            serializer = LoanSerializer(record,many=True)
-        
+            record = Loan.objects.filter(loanapp_id_id=loanapp_id).last()
+            serializer = LoanSerializer(record)
+
         elif company is not None:
             records = Loan.objects.filter(company_id = company)
             serializer = LoanSerializer(records, many=True)
@@ -612,7 +807,7 @@ def getting_approved_loanapp_records(company_id):
         return error(f"An error occurred: {e}")
 
 
-def create_loanagreement(company_id,loan_id, loanapp_id, customer_id, agreement_terms,attachment=None,attachment1=None,maturity_date=None):
+def create_loanagreement(company_id,loan_id, loanapp_id, customer_id, agreement_terms,is_active=False,attachment=None,attachment1=None,maturity_date=None):
     try:
         request = get_current_request()
         if not request.user.is_authenticated:
@@ -632,7 +827,7 @@ def create_loanagreement(company_id,loan_id, loanapp_id, customer_id, agreement_
         last_id = '00'
         if generate_id:
             last_id = generate_id.agreement_id[9:]
-        agreement_id = unique_id('LA',last_id)
+        agreement_id = unique_id('LG',last_id)
 
         instance = LoanAgreement.objects.create(
             company_id=company_id,
@@ -645,6 +840,7 @@ def create_loanagreement(company_id,loan_id, loanapp_id, customer_id, agreement_
             lender_signature = attachment1,
             maturity_date = maturity_date,
             agreement_status = 'Active',
+            is_active = is_active,
         )
 
         # update the workflow status in loan application and loan table
@@ -676,8 +872,31 @@ def create_loanagreement(company_id,loan_id, loanapp_id, customer_id, agreement_
         return error(f"Validation Error: {e}")
     except Exception as e:
         return error(f"An error occurred: {e}")
+    
+def loanagreement_confirmation(company_id,loanagreementid,status):
+    try:
+        instance = LoanAgreement.objects.get(pk = loanagreementid)
+        # update agreement status in loan
+        loan = Loan.objects.get(pk = instance.loan_id.id)
 
-def update_loanagreement(loanagreement_id,company_id, loanapp_id = None, customer_id = None, agreement_terms = None,attachment = None,attachment1 = None):
+        if status == "Completed":
+            instance.agreement_status = "Completed"
+            loan.status = 'approved'
+        else:
+            instance.agreement_status = "Terminated"
+            loan.status = 'denied'
+        
+        instance.save()
+        loan.save()
+
+        return success(f'Successfully confirmed')
+    except LoanAgreement.DoesNotExist:
+        return error('Invalid LoanAgreement ID: LoanAgreement not found.')
+    except Exception as e:
+        return error(f"An error occurred: {e}")
+
+
+def update_loanagreement(loanagreement_id,company_id,is_active=False, loanapp_id = None,maturity_date=None,loan_id = None, customer_id = None, agreement_terms = None,attachment = None,attachment1 = None):
     try:
         request = get_current_request()
         if not request.user.is_authenticated:
@@ -694,16 +913,18 @@ def update_loanagreement(loanagreement_id,company_id, loanapp_id = None, custome
 
         instance.company_id = company_id if company_id is not None else instance.company_id
         instance.loanapp_id_id = loanapp_id if loanapp_id is not None else instance.loanapp_id
+        instance.loan_id_id = loan_id if loan_id is not None else instance.loan_id
         instance.customer_id_id = customer_id if customer_id is not None else instance.customer_id
         instance.agreement_terms = agreement_terms if agreement_terms is not None else instance.agreement_terms
         instance.borrower_signature = attachment if attachment is not None else instance.borrower_signature
         instance.lender_signature = attachment1 if attachment1 is not None else instance.lender_signature
+        instance.is_active = is_active
         instance.save()
         return success('Successfully Updated')
     except Company.DoesNotExist:
         return error('Invalid Company ID: Destination not found.')
     except Loan.DoesNotExist:
-        return error('Invalid Loan ID: Destination not found.')
+        return error('Invalid Loan ID: Loan not found.')
     except Customer.DoesNotExist:
         return error('Invalid Customer ID: Destination not found.')
     except  LoanAgreement.DoesNotExist:
@@ -723,7 +944,7 @@ def view_loanagreement(loanagreement_id=None,company_id = None):
             record = LoanAgreement.objects.get(pk=loanagreement_id)
             serializer = LoanagreementSerializer(record)
         elif company_id is not None:
-            records = LoanAgreement.objects.filter(company_id = company_id)
+            records = LoanAgreement.objects.filter(company_id = company_id).order_by("-id")
             serializer = LoanagreementSerializer(records, many=True)
         else:
             records = LoanAgreement.objects.all()
@@ -736,6 +957,49 @@ def view_loanagreement(loanagreement_id=None,company_id = None):
     except Exception as e:
         # Return an error response with the exception message
         return error(f"An error occurred: {e}")
+
+def getting_completed_agreement(company_id):
+    try:
+        records = Loan.objects.filter(company_id = company_id,is_active=True,status__iexact = 'approved').order_by("-id")
+        serializer = LoanSerializer(records, many=True)
+        return success(serializer.data)
+    
+    except LoanAgreement.DoesNotExist:
+        # Return an error response if the {model_name} does not exist
+        return error('Loanagreement does not exist')
+    except Exception as e:
+        # Return an error response with the exception message
+        return error(f"An error occurred: {e}")
+
+def agreement_confirmation(loanagreement_id,status):
+    try:
+        records = LoanAgreement.objects.get(id = loanagreement_id)
+        records.agreement_status = status
+        records.save()
+        loanapp = LoanApplication.objects.get(id = records.loan_id.id)
+        loan_data = Loan.objects.get(id = records.loanapp_id.id)
+        if status == 'Completed':
+            loanapp.workflow_stats = 'Agreement_completed'
+            loan_data.workflow_stats = 'Agreement_completed'
+        else:
+            loanapp.workflow_stats = 'Agreement_dined'
+            loan_data.workflow_stats = 'Agreement_dined'
+        loanapp.save()
+        loan_data.save()
+
+    except LoanAgreement.DoesNotExist:
+        # Return an error response if the {model_name} does not exist
+        return error('Loanagreement does not exist')
+    except LoanApplication.DoesNotExist:
+        # Return an error response if the {model_name} does not exist
+        return error('LoanApplication does not exist')
+    except Loan.DoesNotExist:
+        # Return an error response if the {model_name} does not exist
+        return error('Loan does not exist')
+    except Exception as e:
+        # Return an error response with the exception message
+        return error(f"An error occurred: {e}")
+
 
 def delete_loanagreement(loanagreement_id):
     try:
@@ -752,7 +1016,6 @@ def delete_loanagreement(loanagreement_id):
     except Exception as e:
         return error(f"An error occurred: {e}")
 
-
 def getting_approvedloan(company_id):
     try:
         loan_details = Loan.objects.filter(workflow_stats__iexact = "Borrower_and_Lender_Approved",company_id = company_id)
@@ -760,6 +1023,8 @@ def getting_approvedloan(company_id):
         return success(serializer.data)
     except Exception as e:
         return error(f"An error occurred: {e}")
+
+
 
 def create_disbursement(company_id, customer_id,loan_id, loan_application_id, amount, disbursement_type, disbursement_status,disbursement_method,currency_id,bank=None,notes=None):
     try:
@@ -777,8 +1042,38 @@ def create_disbursement(company_id, customer_id,loan_id, loan_application_id, am
         generate_id = Disbursement.objects.last()
         last_id = '00'
         if generate_id:
-            last_id = generate_id.disbursement_id[7:]
+            last_id = generate_id.disbursement_id[10:]
         disbursement_id = unique_id('DISB', last_id)
+
+        loanapp = LoanApplication.objects.get(pk=loan_application_id)
+        loan = Loan.objects.get(pk = loan_id)
+
+        # 1 st scenario disbursement type one-off and Disbursement Beneficiary Pay Self
+        if loanapp.disbursement_type == 'one_off':
+            if loanapp.loantype.disbursement_beneficiary == 'pay_self':
+                loan_account = LoanAccount.objects.get(loan_id = loan.id)
+                loan_account.principal_amount = amount
+                loan_account.outstanding_balance = amount
+                loan_account.save()
+                print("One-off disbursement to loan account completed.")
+            elif loanapp.loantype.disbursement_beneficiary == 'pay_milestone':  
+                # Prevent customer from withdrawing the loan amount for controlled purposes
+                return error("Disbursement cannot proceed as the amount is designated for a milestone.")
+
+        elif loanapp.disbursement_type == 'trenches': 
+            if loanapp.loantype.disbursement_beneficiary == 'pay_self':
+                loan_account = LoanAccount.objects.get(loan_id = loan.id)
+                loan_account.principal_amount += amount
+                loan_account.outstanding_balance += amount
+                loan_account.save()
+                print("One-off disbursement to loan account completed.")
+
+            elif loanapp.loantype.disbursement_beneficiary == 'pay_milestone':
+                milestone_account = MilestoneAccount.objects.get(loan_id = loan.id)
+                milestone_account.milestone_cost += amount
+                milestone_account.status += 'Completed'
+                milestone_account.save()
+                print("One-off disbursement to milestone wallet account completed.")
 
         # Create disbursement
         instance = Disbursement.objects.create(
@@ -795,13 +1090,11 @@ def create_disbursement(company_id, customer_id,loan_id, loan_application_id, am
             bank_id = bank,
             notes=notes,
         )
-
         # update the workflow status in loan application and loan table
-        loanapp = LoanApplication.objects.get(pk=loan_application_id)
-        loan = Loan.objects.get(pk = loan_id)
-        loan.disbursement_amount = float(loan.disbursement_amount) + float(amount),
+        loan.disbursement_amount = float(loan.disbursement_amount) + float(amount)
         loanapp.workflow_stats = 'Disbursment'
         loan.workflow_stats = 'Disbursment'
+        loan.disbursement_amount = amount
         loanapp.save()
         loan.save()
         return success(f'Successfully created disbursement {instance}')
@@ -904,13 +1197,25 @@ def getting_disbursementloans(company_id):
 
 def getting_repayment_schedules(company_id,loanapp_id):
     try:
-        instance = RepaymentSchedule.objects.filter(company_id=company_id,loan_application_id = loanapp_id)
+        instance = RepaymentSchedule.objects.filter(company_id=company_id,loan_id_id = loanapp_id)
         serializer = RepaymentscheduleSerializer(instance,many=True)
         return success(serializer.data) 
     except Exception as e:
         return error(f"An error occurred: {e}")
 
-def create_collaterals(company_id, loanapp_id, customer_id, collateral_type_id, collateral_value, valuation_date, collateral_status, insurance_status,attachment = None):
+def confirmed_schedule(loan_id):
+    try:
+        loans = RepaymentSchedule.objects.filter(loan_id_id = loan_id)
+        for data in loans:
+            data.confirmed_status = 'Confirmed'
+            data.save()
+        return success('Sucessfully Confirmed') 
+    except Exception as e:
+        return error(f"An error occurred: {e}")
+
+
+
+def create_collaterals(company_id, loanapp_id, customer_id, collateral_type_id, collateral_value, valuation_date, collateral_status, insurance_status,description=None):
     """ ================= collateral creations ======================== """
     try:
         request = get_current_request()
@@ -940,7 +1245,6 @@ def create_collaterals(company_id, loanapp_id, customer_id, collateral_type_id, 
             customer_id_id=customer_id,
             collateral_type_id=collateral_type_id,
             collateral_value=collateral_value,
-            valuation_report = attachment,
             valuation_date=valuation_date,
             collateral_status=collateral_status,
             insurance_status=insurance_status,
@@ -958,7 +1262,38 @@ def create_collaterals(company_id, loanapp_id, customer_id, collateral_type_id, 
         return error(f"Validation Error: {e}")
     except Exception as e:
         return error(f"An error occurred: {e}")
-    
+
+def upload_collateraldocument(company_id,loanapplication_id,document_name,attachment=None,desctioption=None):
+    try:
+        Company.objects.get(pk=company_id)
+        LoanApplication.objects.get(pk=loanapplication_id)
+
+        instance = CollateralDocuments.objects.create(
+            company_id = company_id,
+            application_id_id = loanapplication_id,
+            document_name = document_name,
+            additional_documents = attachment,
+            description = desctioption,
+        )
+        return success(f'Successfully created {instance}')
+    except Company.DoesNotExist:
+        return error('Invalid Company ID: Company not found.')
+    except LoanApplication.DoesNotExist:
+        return error('Invalid LoanApplication ID: LoanApplication not found.')   
+    except Exception as e:
+        return error(f"An error occurred: {e}")
+
+def view_collateraldocument(loan_application_id):
+    try:
+        records = CollateralDocuments.objects.filter(application_id = loan_application_id)
+        serializer = CollateralDocumentsSerializer(records, many=True).data
+        return success(serializer)
+    except LoanApplication.DoesNotExist:
+        return error('Invalid LoanApplication ID: LoanApplication not found.')
+    except Exception as e:
+        return error(f"An error occurred: {e}")
+
+
 def update_collaterals(collaterals_id,company_id=None, collateral_id=None, loanapp_id=None, customer_id=None, collateral_type_id=None, collateral_value=None, valuation_date=None, collateral_status=None, insurance_status=None,valuation_report=None):
     try:
         request = get_current_request()
@@ -1002,7 +1337,7 @@ def update_collaterals(collaterals_id,company_id=None, collateral_id=None, loana
     except Exception as e:
         return error(f"An error occurred: {e}")
 
-def view_collaterals(company_id,collaterals_id=None,customer_id = None):
+def view_collaterals(company_id,collaterals_id=None,customer_id = None,loan_appliaction_id = None):
     try:
         request = get_current_request()
         if not request.user.is_authenticated:
@@ -1011,6 +1346,9 @@ def view_collaterals(company_id,collaterals_id=None,customer_id = None):
         if collaterals_id is not None:
             record = Collaterals.objects.get(pk=collaterals_id)
             serializer = CollateralsSerializer(record)
+        elif loan_appliaction_id is not None:
+            records = Collaterals.objects.filter(loanapp_id = loan_appliaction_id)
+            serializer = CollateralsSerializer(records, many=True)
         elif customer_id is not None:
             records = Collaterals.objects.filter(customer_id_id = customer_id,company_id = company_id)
             serializer = CollateralsSerializer(records, many=True)
@@ -1695,7 +2033,7 @@ def delete_identificationtype(identificationtype_id):
         return error(f"An error occurred: {e}")
 
 
-def create_loantype(company_id,loantype,interest_rate=None,loan_teams=None,min_loan_amt=None,max_loan_amt=None,eligibility=None,collateral_required=False,charges=None,is_active=False,description = None ):
+def create_loantype(company_id,loantype,disbursement_beneficiary=None,interest_rate=None,loan_teams=None,min_loan_amt=None,max_loan_amt=None,eligibility=None,collateral_required=False,charges=None,is_active=False,description = None ):
     try:
         request = get_current_request()
         if not request.user.is_authenticated:
@@ -1720,6 +2058,7 @@ def create_loantype(company_id,loantype,interest_rate=None,loan_teams=None,min_l
             loan_teams = loan_teams, # Standard loan term duration for this type, in months.
             min_loan_amt = min_loan_amt,
             max_loan_amt = max_loan_amt,
+            disbursement_beneficiary = disbursement_beneficiary,
             eligibility = eligibility, # Conditions a borrower must meet to qualify for this loan.
             collateral_required = collateral_required,
             charges = charges, # Any associated fees like processing or administration fees.
@@ -1733,7 +2072,7 @@ def create_loantype(company_id,loantype,interest_rate=None,loan_teams=None,min_l
     except Exception as e:
         return error(f"An error occurred: {e}")
 
-def update_loantype(company_id,loantype_id,loantype,interest_rate=None,loan_teams=None,min_loan_amt=None,max_loan_amt=None,eligibility=None,collateral_required=False,charges=None,is_active=False,description = None ):
+def update_loantype(company_id,loantype_id,loantype,disbursement_beneficiary=None,interest_rate=None,loan_teams=None,min_loan_amt=None,max_loan_amt=None,eligibility=None,collateral_required=False,charges=None,is_active=False,description = None ):
     try:
         request = get_current_request()
         if not request.user.is_authenticated:
@@ -1746,6 +2085,7 @@ def update_loantype(company_id,loantype_id,loantype,interest_rate=None,loan_team
 
         instance.company_id_id = company_id if company_id is not None else instance.company_id.id
         instance.loantype = loantype if loantype is not None else instance.loantype
+        instance.disbursement_beneficiary = disbursement_beneficiary if disbursement_beneficiary is not None else instance.disbursement_beneficiary
         instance.description = description if description is not None else instance.description
         instance.interest_rate = interest_rate if interest_rate is not None else instance.interest_rate
         instance.loan_teams = loan_teams if loan_teams is not None else instance.loan_teams
